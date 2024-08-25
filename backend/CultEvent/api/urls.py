@@ -10,6 +10,9 @@ router.register(r'evenements', views.EvenementViewSet)
 router.register(r'medias', views.MediaViewSet)
 router.register(r'avis', views.AvisViewSet)
 router.register(r'utilisateurs', views.UserViewSet)
+router.register(r'users', views.UserProfileViewSet, basename='profile')
+router.register(r'notifications', views.NotificationViewSet, basename='notifications')
+
 
 urlpatterns = [
     path('', include(router.urls)),  # Ajouter les routes des ViewSets

@@ -31,13 +31,11 @@ class Profile(models.Model):
     def __str__(self):
         return self.full_name
 
-# Création automatique du profil utilisateur à la création d'un utilisateur
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
 
-# Sauvegarde automatique du profil utilisateur lors de la sauvegarde de l'utilisateur
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
@@ -54,6 +52,7 @@ class Lieu(models.Model):
     longitude = models.DecimalField(max_digits=10, decimal_places=8)
     categorie = models.CharField(max_length=50, choices=CATEGORIE_CHOICES)
     utilisateur = models.ForeignKey(User, related_name='lieux', on_delete=models.CASCADE)
+    is_approved = models.BooleanField(null=True, default=None)
 
     def __str__(self):
         return self.nom
@@ -70,6 +69,7 @@ class Evenement(models.Model):
     lieu = models.ForeignKey(Lieu, related_name='evenement', on_delete=models.CASCADE)
     categorie = models.CharField(max_length=50, choices=CATEGORIE_CHOICES)
     utilisateur = models.ForeignKey(User, related_name='evenements', on_delete=models.CASCADE)
+    is_approved = models.BooleanField(null=True, default=None)
 
     def __str__(self):
         return self.nom
@@ -100,7 +100,23 @@ class Avis(models.Model):
     commentaire = models.TextField()
     date = models.DateField(auto_now_add=True)
 
-
     def __str__(self):
         target = self.lieu or self.evenement
         return f"Avis par {self.utilisateur.username} sur {target}" if target else f"Avis par {self.utilisateur.username}"
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('creation', 'Création'),
+        ('approval', 'Approbation'),
+        ('rejection', 'Rejet'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    type = models.CharField(max_length=10, choices=NOTIFICATION_TYPES)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification pour {self.user.email} - {self.get_type_display()}"
