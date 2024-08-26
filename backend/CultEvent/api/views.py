@@ -9,6 +9,7 @@ from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
 from .permissions import IsAuthenticatedForCRUD
 from django.db.models import Q
+from django.utils import timezone
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -180,7 +181,6 @@ class EvenementViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         user_id = request.query_params.get('user', None)
         is_approved = request.query_params.get('is_approved', None)
-        
         queryset = Evenement.objects.all()
 
         if user_id:
@@ -191,6 +191,10 @@ class EvenementViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(is_approved__isnull=True)
             else:
                 queryset = queryset.filter(is_approved=is_approved)
+        
+        # Filtrer les événements dont la date est supérieure ou égale à aujourd'hui
+        today = timezone.now().date()
+        queryset = queryset.filter(date__gte=today)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -289,11 +293,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def list(self, request, *args, **kwargs):
-        # Filtrer les notifications par utilisateur connecté
-        queryset = Notification.objects.filter(user=request.user)
+        user_id = request.query_params.get('user', None)
+        if user_id:
+            queryset = Notification.objects.filter(user_id=user_id)
+        else:
+            queryset = Notification.objects.all()
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
+    
     def perform_create(self, serializer):
         serializer.save()
 
